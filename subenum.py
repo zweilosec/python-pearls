@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-#Subdomain enumeration tool
-#https://github.com/zweilosec
 
 import dns.resolver
 import argparse
@@ -25,16 +23,16 @@ def validate_subdomain(domain,wordlist):
 
         with open(wordlist) as subdomains:
             for subdomain in subdomains:
-                #for some reason the subdomains each have \r or \n on them, need to strip it off
-                print(f'Testing: {subdomain.strip()}', end='\r', flush=True)
+                #for some reason subdomain has \r or \n on them, need to strip it off
+                print(informational + f'Testing: {subdomain.strip()}', end='\r', flush=True)
                 try:
                     ip_list = dns.resolver.resolve(f'{subdomain.strip()}.{domain}', 'A')
                     if ip_list:
                         foundList.append(subdomain.strip())
 
-                        print(success + f'\nSubdomain {subdomain.strip()}.{domain} found at:')
+                        print(informational + 'Subdomain '+ success + f'{subdomain.strip()}.{domain}' + informational + ' found at:')
                         for ip in ip_list:
-                            print(f'\t{ip}')
+                            print(success + f'\t{ip}')
 
                 except dns.resolver.NXDOMAIN:
                     pass
